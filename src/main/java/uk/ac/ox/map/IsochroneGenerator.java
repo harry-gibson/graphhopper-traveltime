@@ -51,8 +51,7 @@ public class IsochroneGenerator {
     public static void main( String[] args ) throws IOException {
 
         LocalDateTime start = LocalDateTime.now();
-        System.out.println(dtf.format(start));
-
+        System.out.println("Start: " + dtf.format(start));
         printMemoryUsage();
         int timeLimit = 8100;
         int numberOfBuckets = 9;
@@ -63,16 +62,8 @@ public class IsochroneGenerator {
         GraphHopper hopper = getGraph(osmFile, graphLocation, mode);
         EncodingManager encodingManager = hopper.getEncodingManager();
         FlagEncoder encoder = encodingManager.getEncoder(mode);
-        // Cache
-        Reader inCache = new FileReader(args[4]);
-        Iterable<CSVRecord> cache = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().parse(inCache);
-        Set<Coordinate> caches = Sets.newHashSet();
-        for (CSVRecord record : cache) {
-            Double lat = Double.parseDouble(record.get("lat"));
-            Double lon = Double.parseDouble(record.get("lon"));
-            Coordinate coordinate = new Coordinate(lon,lat);
-            caches.add(coordinate);
-        }
+        System.out.println("Network loaded: " + dtf.format(LocalDateTime.now()));
+        printMemoryUsage();
         // Origins
         Reader in = new FileReader(args[3]);
         Iterable<CSVRecord> records = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(in);
@@ -96,38 +87,39 @@ public class IsochroneGenerator {
                     CSVRecord record = csvRecords.get(i);
                     Double lat = Double.parseDouble(record.get("Lat"));
                     Double lon = Double.parseDouble(record.get("Long"));
-                    Coordinate coordinate = new Coordinate(lon,lat);
-                    if(!caches.contains(coordinate)){
-                        List<List<Coordinate>> isochrone = buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
-                        printMemoryUsage();
-                        if(isochrone != null){
-                            List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
-                            Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
-                            int interval = timeLimit / numberOfBuckets;
+                    List<List<Coordinate>> isochrone = buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
+                    System.out.println("Isochrone loaded: " + dtf.format(LocalDateTime.now()));
+                    printMemoryUsage();
+                    if(isochrone != null){
+                        List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
+                        Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
+                        int interval = timeLimit / numberOfBuckets;
+                        try {
+                            printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        for (int j = 1; j < polygonShells.size() - 1; j++) {
+                            Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
                             try {
-                                printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
+                                printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            for (int j = 1; j < polygonShells.size() - 1; j++) {
-                                Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
-                                try {
-                                    printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                                previousPolygon = polygon;
+                            previousPolygon = polygon;
 
-                            }
                         }
                     }
+                    isochrone.clear();
+                    System.out.println("Isochrone cleared: " + dtf.format(LocalDateTime.now()));
+                    printMemoryUsage();
                 }
         );
         printMemoryUsage();
         printer.close();
 
         LocalDateTime end = LocalDateTime.now();
-        System.out.println(dtf.format(end));
+        System.out.println("End: " + dtf.format(end));
     }
 
     private static ArrayList<Coordinate[]> buildIsochronePolygons(Double lat, Double lon, List<List<Coordinate>> isochrone) {
