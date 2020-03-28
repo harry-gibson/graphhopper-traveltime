@@ -139,7 +139,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>uk.ac.ox.map.App</mainClass>
+              <mainClass>uk.ac.ox.map.IsochroneGenerator</mainClass>
             </manifest>
           </archive>
         </configuration>
