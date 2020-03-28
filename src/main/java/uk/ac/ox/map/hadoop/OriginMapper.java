@@ -64,8 +64,8 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
     ) throws IOException, InterruptedException {
         String line = value.toString();
         String[] strings = StringUtils.splitByWholeSeparatorPreserveAllTokens(line, ",");
-        String latString = strings[5];
-        String lonString = strings[6];
+        String latString = strings[strings.length - 3];
+        String lonString = strings[strings.length - 2];
         if(!latString.isEmpty() && !lonString.isEmpty()){
             Double lat = Double.parseDouble(latString);
             Double lon = Double.parseDouble(lonString);
