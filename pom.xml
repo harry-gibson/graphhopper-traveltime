@@ -145,7 +145,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>uk.ac.ox.map.IsochroneGenerator</mainClass>
+              <mainClass>uk.ac.ox.map.IsochroneDriver</mainClass>
             </manifest>
           </archive>
         </configuration>
