@@ -22,6 +22,7 @@ import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.triangulate.ConformingDelaunayTriangulator;
 import org.locationtech.jts.triangulate.ConstraintVertex;
+import org.locationtech.jts.triangulate.quadedge.LocateFailureException;
 import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
 import org.locationtech.jts.triangulate.quadedge.Vertex;
 
@@ -135,27 +136,32 @@ public class IsochroneGenerator {
 
         ConformingDelaunayTriangulator conformingDelaunayTriangulator = new ConformingDelaunayTriangulator(sites, 0.0);
         conformingDelaunayTriangulator.setConstraints(new ArrayList<>(), new ArrayList<>());
-        conformingDelaunayTriangulator.formInitialDelaunay();
-        conformingDelaunayTriangulator.enforceConstraints();
+        try {
+            conformingDelaunayTriangulator.formInitialDelaunay();
+            conformingDelaunayTriangulator.enforceConstraints();
 
-        Geometry convexHull = conformingDelaunayTriangulator.getConvexHull();
-        if (!(convexHull instanceof Polygon)) {
+            Geometry convexHull = conformingDelaunayTriangulator.getConvexHull();
+            if (!(convexHull instanceof Polygon)) {
+                return null;
+            }
+            QuadEdgeSubdivision tin = conformingDelaunayTriangulator.getSubdivision();
+            for (Vertex vertex : (Collection<Vertex>) tin.getVertices(true)) {
+                if (tin.isFrameVertex(vertex)) {
+                    vertex.setZ(Double.MAX_VALUE);
+                }
+            }
+            ArrayList<Coordinate[]> polygonShells = new ArrayList<>();
+            ContourBuilder contourBuilder = new ContourBuilder(tin);
+            for (int j = 0; j < isochrone.size() - 1; j++) {
+                MultiPolygon multiPolygon = contourBuilder.computeIsoline((double) j + 0.5);
+                Polygon maxPolygon = heuristicallyFindMainConnectedComponent(multiPolygon, geometryFactory.createPoint(new Coordinate(lon, lat)));
+                polygonShells.add(maxPolygon.getExteriorRing().getCoordinates());
+            }
+            return  polygonShells;
+        } catch (LocateFailureException e) {
             return null;
         }
-        QuadEdgeSubdivision tin = conformingDelaunayTriangulator.getSubdivision();
-        for (Vertex vertex : (Collection<Vertex>) tin.getVertices(true)) {
-            if (tin.isFrameVertex(vertex)) {
-                vertex.setZ(Double.MAX_VALUE);
-            }
-        }
-        ArrayList<Coordinate[]> polygonShells = new ArrayList<>();
-        ContourBuilder contourBuilder = new ContourBuilder(tin);
-        for (int j = 0; j < isochrone.size() - 1; j++) {
-            MultiPolygon multiPolygon = contourBuilder.computeIsoline((double) j + 0.5);
-            Polygon maxPolygon = heuristicallyFindMainConnectedComponent(multiPolygon, geometryFactory.createPoint(new Coordinate(lon, lat)));
-            polygonShells.add(maxPolygon.getExteriorRing().getCoordinates());
-        }
-        return  polygonShells;
+
     }
 
     public static List<List<Coordinate>> buildIsochrone(int timeLimit, int numberOfBuckets, GraphHopper hopper, FlagEncoder encoder, Double lat, Double lon) {
