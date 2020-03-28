@@ -65,7 +65,7 @@ public class IsochroneGenerator {
         FlagEncoder encoder = encodingManager.getEncoder(mode);
         // Cache
         Reader inCache = new FileReader(args[4]);
-        Iterable<CSVRecord> cache = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(inCache);
+        Iterable<CSVRecord> cache = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().parse(inCache);
         Set<Coordinate> caches = Sets.newHashSet();
         for (CSVRecord record : cache) {
             Double lat = Double.parseDouble(record.get("lat"));
