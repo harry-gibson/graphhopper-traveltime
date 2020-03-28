@@ -122,7 +122,7 @@ public class IsochroneGenerator {
         System.out.println("End: " + dtf.format(end));
     }
 
-    private static ArrayList<Coordinate[]> buildIsochronePolygons(Double lat, Double lon, List<List<Coordinate>> isochrone) {
+    public static ArrayList<Coordinate[]> buildIsochronePolygons(Double lat, Double lon, List<List<Coordinate>> isochrone) {
         Collection<ConstraintVertex> sites = new ArrayList<>();
         for (int j = 0; j < isochrone.size(); j++) {
             List<Coordinate> level = isochrone.get(j);
@@ -159,7 +159,7 @@ public class IsochroneGenerator {
         return  polygonShells;
     }
 
-    private static List<List<Coordinate>> buildIsochrone(int timeLimit, int numberOfBuckets, GraphHopper hopper, FlagEncoder encoder, Double lat, Double lon) {
+    public static List<List<Coordinate>> buildIsochrone(int timeLimit, int numberOfBuckets, GraphHopper hopper, FlagEncoder encoder, Double lat, Double lon) {
         QueryResult qr = hopper.getLocationIndex().findClosest(lat, lon, DefaultEdgeFilter.allEdges(encoder));
         Graph graph = hopper.getGraphHopperStorage();
         QueryGraph queryGraph = new QueryGraph(graph);
@@ -172,8 +172,6 @@ public class IsochroneGenerator {
         } catch (IllegalStateException exception) {
             return null;
         }
-
-
     }
 
 

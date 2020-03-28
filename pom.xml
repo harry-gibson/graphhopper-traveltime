@@ -16,6 +16,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <geotools.version>24-SNAPSHOT</geotools.version>
+    <bigtable.version>1.4.0</bigtable.version>
   </properties>
   <repositories>
     <repository>
@@ -68,6 +69,11 @@
         <groupId>com.graphhopper</groupId>
         <artifactId>graphhopper-isochrone</artifactId>
         <version>0.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.bigtable</groupId>
+      <artifactId>bigtable-hbase-mapreduce</artifactId>
+      <version>${bigtable.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
