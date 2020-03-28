@@ -72,16 +72,18 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             List<List<Coordinate>> isochrone = IsochroneGenerator.buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
             if(isochrone != null){
                 List<Coordinate[]> polygonShells = IsochroneGenerator.buildIsochronePolygons(lat, lon, isochrone);
-                Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
-                int interval = timeLimit / numberOfBuckets;
-                outputValue.set(value + "," + interval + ",\"" + wktWriter.write(previousPolygon) + "\"");
-                context.write(outputKey, outputValue);
-                for (int j = 1; j < polygonShells.size() - 1; j++) {
-                    Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
-                    outputValue.set(value + "," + ((j+1) * interval) + ",\"" +  wktWriter.write(polygon.difference(previousPolygon)) + "\"");
+                if(polygonShells != null) {
+                    Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
+                    int interval = timeLimit / numberOfBuckets;
+                    outputValue.set(value + "," + interval + ",\"" + wktWriter.write(previousPolygon) + "\"");
                     context.write(outputKey, outputValue);
-                    previousPolygon = polygon;
+                    for (int j = 1; j < polygonShells.size() - 1; j++) {
+                        Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                        outputValue.set(value + "," + ((j+1) * interval) + ",\"" +  wktWriter.write(polygon.difference(previousPolygon)) + "\"");
+                        context.write(outputKey, outputValue);
+                        previousPolygon = polygon;
 
+                    }
                 }
             }
         }
