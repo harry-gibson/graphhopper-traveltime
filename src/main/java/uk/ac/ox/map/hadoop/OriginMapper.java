@@ -22,7 +22,7 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
     private final GraphHopper hopper = new GraphHopperOSM().setOSMFile("/tmp/network.osm.pbf").
             setStoreOnFlush(true).
             setCHEnabled(true).
-            setGraphHopperLocation("/tmp/network/").
+            setGraphHopperLocation("/tmp/network").
             setEncodingManager(EncodingManager.create("car")).
             importOrLoad();
     protected FlagEncoder encoder;

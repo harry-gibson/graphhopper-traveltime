@@ -1,6 +1,6 @@
 #!/bin/bash
 gcloud --project=map-visualization-dev beta dataproc clusters create \
-   --num-workers=10 \
+   --num-workers=30 \
    --scopes=cloud-platform \
    --worker-machine-type=n1-standard-1 \
    --worker-boot-disk-type=pd-ssd \
