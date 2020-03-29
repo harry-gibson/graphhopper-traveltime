@@ -24,7 +24,7 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
     protected GraphHopper hopper;
     protected FlagEncoder encoder;
-    protected String destination;
+    protected String destinationToDelete;
 
     private static final int timeLimit = 8100;
     private static final int numberOfBuckets = 9;
@@ -41,7 +41,7 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
         String string = generateRandomString(1)[0];
         String source = "/srv/data/network/";
         File srcDir = new File(source);
-        destination = "/srv/data/" + string + "/";
+        String destination = "/srv/data/" + string + "/";
         File destDir = new File(destination);
         try {
             FileUtils.copyDirectory(srcDir, destDir);
