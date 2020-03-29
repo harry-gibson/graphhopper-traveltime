@@ -4,7 +4,6 @@ import com.graphhopper.GraphHopper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -20,12 +19,7 @@ import java.util.List;
 
 public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
-    private static final GraphHopper hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
-            setStoreOnFlush(true).
-            setCHEnabled(true).
-            setGraphHopperLocation("/srv/data/network/").
-            setEncodingManager(EncodingManager.create("car")).
-            importOrLoad();
+    protected  GraphHopper hopper;
 
     protected FlagEncoder encoder;
 
@@ -40,7 +34,13 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void setup(Context context) {
+        hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
+                setStoreOnFlush(true).
+                setCHEnabled(true).
+                setGraphHopperLocation("/srv/data/network/").
+                setEncodingManager(EncodingManager.create("car")).
+                importOrLoad();
         EncodingManager encodingManager = hopper.getEncodingManager();
         encoder = encodingManager.getEncoder("car");
     }
