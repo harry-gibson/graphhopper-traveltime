@@ -35,14 +35,16 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
     @Override
     protected void setup(Context context) {
-        hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
-                setStoreOnFlush(true).
-                setCHEnabled(true).
-                setGraphHopperLocation("/srv/data/network/").
-                setEncodingManager(EncodingManager.create("car")).
-                importOrLoad();
-        EncodingManager encodingManager = hopper.getEncodingManager();
-        encoder = encodingManager.getEncoder("car");
+        if(hopper == null){
+            hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
+                    setStoreOnFlush(true).
+                    setCHEnabled(true).
+                    setGraphHopperLocation("/srv/data/network/").
+                    setEncodingManager(EncodingManager.create("car")).
+                    importOrLoad();
+            EncodingManager encodingManager = hopper.getEncodingManager();
+            encoder = encodingManager.getEncoder("car");
+        }
     }
 
     @Override
