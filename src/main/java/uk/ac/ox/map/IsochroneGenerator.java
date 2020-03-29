@@ -81,9 +81,8 @@ public class IsochroneGenerator {
         FileWriter out = new FileWriter(args[4]);
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
         printer.printRecord("time", "isochrone","lat","lon");
-        IntStream.range(0, csvRecords.size()).parallel().forEach(
-                i -> {
-                    CSVRecord record = csvRecords.get(i);
+        csvRecords.parallelStream().forEach(
+        record -> {
                     Double lat = Double.parseDouble(record.get("Lat"));
                     Double lon = Double.parseDouble(record.get("Long"));
                     List<List<Coordinate>> isochrone = buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
