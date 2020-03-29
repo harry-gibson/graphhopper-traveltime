@@ -72,15 +72,13 @@ public class IsochroneGenerator {
         for (CSVRecord record : records) {
             String latString = record.get("Lat");
             String lonString = record.get("Long");
-            if(!latString.isEmpty() && !lonString.isEmpty()){
+            String country = args[5];
+            if(!latString.isEmpty() && !lonString.isEmpty() && record.get("Country").equals(country)){
                 csvRecords.add(record);
             }
         }
-//        FileWriter out = new FileWriter(args[4]);
-        BufferedWriter out = Files.newBufferedWriter(
-                Paths.get(args[4]),
-                StandardOpenOption.APPEND,
-                StandardOpenOption.CREATE);
+        System.out.println(csvRecords.size());
+        FileWriter out = new FileWriter(args[4]);
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
         printer.printRecord("time", "isochrone","lat","lon");
         IntStream.range(0, csvRecords.size()).parallel().forEach(
@@ -93,25 +91,28 @@ public class IsochroneGenerator {
                     printMemoryUsage();
                     if(isochrone != null){
                         List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
-                        Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
-                        int interval = timeLimit / numberOfBuckets;
-                        try {
-                            printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        for (int j = 1; j < polygonShells.size() - 1; j++) {
-                            Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                        if(polygonShells != null) {
+                            Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
+                            int interval = timeLimit / numberOfBuckets;
                             try {
-                                printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
+                                printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            previousPolygon = polygon;
+                            for (int j = 1; j < polygonShells.size() - 1; j++) {
+                                Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                                try {
+                                    printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                previousPolygon = polygon;
+
+                            }
 
                         }
+                        isochrone.clear();
                     }
-                    isochrone.clear();
                     System.out.println("Isochrone cleared: " + dtf.format(LocalDateTime.now()));
                     printMemoryUsage();
                 }
