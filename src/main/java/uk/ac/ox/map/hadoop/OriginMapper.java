@@ -22,9 +22,14 @@ import java.util.Random;
 
 public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
-    protected GraphHopper hopper;
+    private final GraphHopper hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
+            setStoreOnFlush(true).
+            setCHEnabled(true).
+            setGraphHopperLocation("/srv/data/network/").
+            setEncodingManager(EncodingManager.create("car")).
+            importOrLoad();
     protected FlagEncoder encoder;
-    protected String destinationToDelete;
+
 
     private static final int timeLimit = 8100;
     private static final int numberOfBuckets = 9;
@@ -38,24 +43,6 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
     @Override
     protected void setup(Context context) {
-        String string = generateRandomString(1)[0];
-        String source = "/srv/data/network/";
-        File srcDir = new File(source);
-        String destination = "/srv/data/" + string + "/";
-        File destDir = new File(destination);
-        try {
-            FileUtils.copyDirectory(srcDir, destDir);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
-                setStoreOnFlush(true).
-                setCHEnabled(true).
-                setGraphHopperLocation(destination).
-                setEncodingManager(EncodingManager.create("car")).
-                importOrLoad();
-
         EncodingManager encodingManager = hopper.getEncodingManager();
         encoder = encodingManager.getEncoder("car");
     }
@@ -89,20 +76,4 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             }
         }
     }
-    private String[] generateRandomString(int numberOfWords)
-    {
-        String[] randomStrings = new String[numberOfWords];
-        Random random = new Random();
-        for(int i = 0; i < numberOfWords; i++)
-        {
-            char[] word = new char[random.nextInt(8) + 3];
-            for(int j = 0; j < word.length; j++)
-            {
-                word[j] = (char)('a' + random.nextInt(26));
-            }
-            randomStrings[i] = new String(word);
-        }
-        return randomStrings;
-    }
-
 }
