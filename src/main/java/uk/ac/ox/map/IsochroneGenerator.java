@@ -140,7 +140,8 @@ public class IsochroneGenerator {
 
         Geometry convexHull = conformingDelaunayTriangulator.getConvexHull();
         if (!(convexHull instanceof Polygon)) {
-            return null;
+            throw new IllegalArgumentException("Too few points found. "
+                    + "Please try a different 'point' or a larger 'time_limit'.");
         }
         QuadEdgeSubdivision tin = conformingDelaunayTriangulator.getSubdivision();
         for (Vertex vertex : (Collection<Vertex>) tin.getVertices(true)) {

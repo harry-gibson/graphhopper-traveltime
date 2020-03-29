@@ -4,6 +4,7 @@ import com.graphhopper.GraphHopper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -14,14 +15,16 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.WKTWriter;
 import uk.ac.ox.map.IsochroneGenerator;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
-    protected  GraphHopper hopper;
-
+    protected GraphHopper hopper;
     protected FlagEncoder encoder;
+    protected String destination;
 
     private static final int timeLimit = 8100;
     private static final int numberOfBuckets = 9;
@@ -35,16 +38,26 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
     @Override
     protected void setup(Context context) {
-        if(hopper == null){
-            hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
-                    setStoreOnFlush(true).
-                    setCHEnabled(true).
-                    setGraphHopperLocation("/srv/data/network/").
-                    setEncodingManager(EncodingManager.create("car")).
-                    importOrLoad();
-            EncodingManager encodingManager = hopper.getEncodingManager();
-            encoder = encodingManager.getEncoder("car");
+        String string = generateRandomString(1)[0];
+        String source = "/tmp/network/";
+        File srcDir = new File(source);
+        destination = "/tmp/" + string + "/";
+        File destDir = new File(destination);
+        try {
+            FileUtils.copyDirectory(srcDir, destDir);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        hopper = new GraphHopperOSM().setOSMFile("/tmp/network.osm.pbf").
+                setStoreOnFlush(true).
+                setCHEnabled(true).
+                setGraphHopperLocation(destination).
+                setEncodingManager(EncodingManager.create("car")).
+                importOrLoad();
+
+        EncodingManager encodingManager = hopper.getEncodingManager();
+        encoder = encodingManager.getEncoder("car");
     }
 
     @Override
@@ -76,4 +89,26 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             }
         }
     }
+
+    @Override
+    protected void cleanup(Context context) throws IOException, InterruptedException {
+        FileUtils.deleteDirectory(new File(destination));
+    }
+
+    private String[] generateRandomString(int numberOfWords)
+    {
+        String[] randomStrings = new String[numberOfWords];
+        Random random = new Random();
+        for(int i = 0; i < numberOfWords; i++)
+        {
+            char[] word = new char[random.nextInt(8) + 3];
+            for(int j = 0; j < word.length; j++)
+            {
+                word[j] = (char)('a' + random.nextInt(26));
+            }
+            randomStrings[i] = new String(word);
+        }
+        return randomStrings;
+    }
+
 }
