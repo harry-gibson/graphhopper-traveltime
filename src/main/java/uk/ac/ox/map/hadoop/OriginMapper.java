@@ -89,12 +89,6 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             }
         }
     }
-
-    @Override
-    protected void cleanup(Context context) throws IOException, InterruptedException {
-        FileUtils.deleteDirectory(new File(destination));
-    }
-
     private String[] generateRandomString(int numberOfWords)
     {
         String[] randomStrings = new String[numberOfWords];
