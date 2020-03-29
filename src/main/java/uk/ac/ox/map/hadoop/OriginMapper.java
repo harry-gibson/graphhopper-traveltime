@@ -4,7 +4,6 @@ import com.graphhopper.GraphHopper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -15,17 +14,15 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.WKTWriter;
 import uk.ac.ox.map.IsochroneGenerator;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Random;
 
 public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
 
-    private final GraphHopper hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
+    private final GraphHopper hopper = new GraphHopperOSM().setOSMFile("/tmp/network.osm.pbf").
             setStoreOnFlush(true).
             setCHEnabled(true).
-            setGraphHopperLocation("/srv/data/network/").
+            setGraphHopperLocation("/tmp/network/").
             setEncodingManager(EncodingManager.create("car")).
             importOrLoad();
     protected FlagEncoder encoder;
