@@ -39,9 +39,9 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
     @Override
     protected void setup(Context context) {
         String string = generateRandomString(1)[0];
-        String source = "/tmp/network/";
+        String source = "/srv/data/network/";
         File srcDir = new File(source);
-        destination = "/tmp/" + string + "/";
+        destination = "/srv/data/" + string + "/";
         File destDir = new File(destination);
         try {
             FileUtils.copyDirectory(srcDir, destDir);
@@ -49,7 +49,7 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             e.printStackTrace();
         }
 
-        hopper = new GraphHopperOSM().setOSMFile("/tmp/network.osm.pbf").
+        hopper = new GraphHopperOSM().setOSMFile("/srv/data/network.osm.pbf").
                 setStoreOnFlush(true).
                 setCHEnabled(true).
                 setGraphHopperLocation(destination).
