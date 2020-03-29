@@ -8,4 +8,4 @@ gcloud --project=map-visualization-dev beta dataproc clusters create \
    --zone=europe-west1-b \
    --max-idle=600 \
    --initialization-actions="gs://map-graphhopper/install-on-cluster.sh" \
-   isochrones-cluster
+   isochrone-cluster
