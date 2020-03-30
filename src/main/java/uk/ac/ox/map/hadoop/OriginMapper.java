@@ -73,4 +73,9 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
             }
         }
     }
+
+    @Override
+    protected void cleanup(Context context) {
+        hopper.close();
+    }
 }

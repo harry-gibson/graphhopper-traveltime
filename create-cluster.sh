@@ -1,12 +1,14 @@
 #!/bin/bash
-gcloud --project=map-visualization-dev beta dataproc clusters create \
-   --num-workers=30 \
+gcloud dataproc clusters create \
+   --project=map-visualization-dev \
+   --num-workers=2 \
+   --num-secondary-workers=38 \
    --scopes=cloud-platform \
-   --worker-machine-type=n1-standard-2 \
+   --worker-machine-type=n1-highmem-2 \
    --worker-boot-disk-type=pd-ssd \
    --master-machine-type=n1-standard-2 \
    --region=europe-west1 \
    --zone=europe-west1-b \
    --max-idle=600 \
    --initialization-actions="gs://map-graphhopper/install-on-cluster.sh" \
-   isochrone-cluster
+   isochrone-cluster-1
