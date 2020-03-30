@@ -8,9 +8,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.WKBWriter;
 import org.locationtech.jts.io.WKTWriter;
 import uk.ac.ox.map.IsochroneGenerator;
 
@@ -32,7 +31,7 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
     private static final int numberOfBuckets = 9;
 
     private final static GeometryFactory geometryFactory = new GeometryFactory();
-    private final static WKTWriter wktWriter = new WKTWriter();
+    private final static WKBWriter wkbWriter = new WKBWriter();
 
     private NullWritable outputKey = NullWritable.get();
     private Text outputValue = new Text();
@@ -60,11 +59,12 @@ public class OriginMapper extends Mapper<Object, Text, NullWritable, Text> {
                 if(polygonShells != null) {
                     Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
                     int interval = timeLimit / numberOfBuckets;
-                    outputValue.set(value + "," + interval + ",\"" + wktWriter.write(previousPolygon) + "\"");
+                    outputValue.set(value + "," + interval + "," + WKBWriter.toHex(wkbWriter.write(previousPolygon)));
                     context.write(outputKey, outputValue);
                     for (int j = 1; j < polygonShells.size() - 1; j++) {
                         Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
-                        outputValue.set(value + "," + ((j+1) * interval) + ",\"" +  wktWriter.write(polygon.difference(previousPolygon)) + "\"");
+                        Geometry difference = polygon.difference(previousPolygon);
+                        outputValue.set(value + "," + ((j+1) * interval) + "," +  WKBWriter.toHex(wkbWriter.write(difference)));
                         context.write(outputKey, outputValue);
                         previousPolygon = polygon;
 

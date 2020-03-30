@@ -1,7 +1,6 @@
 package uk.ac.ox.map;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.isochrone.algorithm.ContourBuilder;
 import com.graphhopper.isochrone.algorithm.Isochrone;
@@ -19,6 +18,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.WKBWriter;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.triangulate.ConformingDelaunayTriangulator;
 import org.locationtech.jts.triangulate.ConstraintVertex;
@@ -27,20 +27,17 @@ import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
 import org.locationtech.jts.triangulate.quadedge.Vertex;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.IntStream;
 
 public class IsochroneGenerator {
 
     private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
-    private final static GeometryFactory geometryFactory = new GeometryFactory();
+    private final static GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
     private final static WKTWriter wktWriter = new WKTWriter();
+    private final static WKBWriter wkbWriter = new WKBWriter();
 
     private static final long MEGABYTE = 1024L * 1024L;
 
@@ -73,7 +70,7 @@ public class IsochroneGenerator {
             String latString = record.get("Lat");
             String lonString = record.get("Long");
             String country = args[5];
-            if(!latString.isEmpty() && !lonString.isEmpty() && record.get("Country").equals(country)){
+            if(!latString.isEmpty() && !lonString.isEmpty() && record.get("Country").equals(country) && record.get("Admin1").equals("Bengo")){
                 csvRecords.add(record);
             }
         }
@@ -92,16 +89,20 @@ public class IsochroneGenerator {
                         List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
                         if(polygonShells != null) {
                             Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
+                            previousPolygon.setSRID(4326);
                             int interval = timeLimit / numberOfBuckets;
                             try {
-                                printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
+                                printer.printRecord( interval , WKBWriter.toHex(wkbWriter.write(previousPolygon)), record.get("Lat"), record.get("Long"));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                             for (int j = 1; j < polygonShells.size() - 1; j++) {
                                 Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                                polygon.setSRID(4326);
                                 try {
-                                    printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
+                                    Geometry difference = polygon.difference(previousPolygon);
+                                    difference.setSRID(4326);
+                                    printer.printRecord( ((j+1) * interval) , WKBWriter.toHex(wkbWriter.write(difference)), record.get("Lat"), record.get("Long"));
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
