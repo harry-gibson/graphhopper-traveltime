@@ -32,6 +32,7 @@ public class IsochroneDriver {
 
         job.setNumReduceTasks(0);
 
+
         FileInputFormat.addInputPath(job, new Path(remainingArgs[0]));
         FileOutputFormat.setOutputPath(job, new Path(remainingArgs[1]));
         System.exit(job.waitForCompletion(true) ? 0 : 1);

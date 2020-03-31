@@ -22,19 +22,22 @@ public class App
 {
     public static void main( String[] args ) throws IOException, ParseException {
         WKBReader wkbReader = new WKBReader();
-        Reader in = new FileReader(args[2]);
-        Iterable<CSVRecord> records = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().parse(in);
+        Reader in = new FileReader("/home/cavargasru/Downloads/isochrones_1_16_part-m-00000");
+        Iterable<CSVRecord> records = CSVFormat.RFC4180.parse(in);
         List<CSVRecord> csvRecords = Lists.newArrayList();
         int i = 0;
         System.out.println(csvRecords.size());
         for (CSVRecord record : records) {
-            String geom = record.get("isochrone");
+
+            String geom = record.get(record.size() - 1);
 
             byte[] bytes = WKBReader.hexToBytes(geom);
 
             System.out.println(i + " " + wkbReader.read(bytes).toText());
             i++;
         }
+
+        System.exit(0);
 
         String osmFile = args[0];
         String graphLocation = args[1];
