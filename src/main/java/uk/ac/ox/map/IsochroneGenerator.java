@@ -1,7 +1,6 @@
 package uk.ac.ox.map;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.isochrone.algorithm.ContourBuilder;
 import com.graphhopper.isochrone.algorithm.Isochrone;
@@ -19,27 +18,26 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.WKBWriter;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.triangulate.ConformingDelaunayTriangulator;
 import org.locationtech.jts.triangulate.ConstraintVertex;
+import org.locationtech.jts.triangulate.quadedge.LocateFailureException;
 import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
 import org.locationtech.jts.triangulate.quadedge.Vertex;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.IntStream;
 
 public class IsochroneGenerator {
 
     private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
-    private final static GeometryFactory geometryFactory = new GeometryFactory();
+    private final static GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
     private final static WKTWriter wktWriter = new WKTWriter();
+    private final static WKBWriter wkbWriter = new WKBWriter();
 
     private static final long MEGABYTE = 1024L * 1024L;
 
@@ -71,20 +69,17 @@ public class IsochroneGenerator {
         for (CSVRecord record : records) {
             String latString = record.get("Lat");
             String lonString = record.get("Long");
-            if(!latString.isEmpty() && !lonString.isEmpty()){
+            String country = args[5];
+            if(!latString.isEmpty() && !lonString.isEmpty() && record.get("Country").equals(country) && record.get("Admin1").equals("Bengo")){
                 csvRecords.add(record);
             }
         }
-//        FileWriter out = new FileWriter(args[4]);
-        BufferedWriter out = Files.newBufferedWriter(
-                Paths.get(args[4]),
-                StandardOpenOption.APPEND,
-                StandardOpenOption.CREATE);
+        System.out.println(csvRecords.size());
+        FileWriter out = new FileWriter(args[4]);
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
         printer.printRecord("time", "isochrone","lat","lon");
-        IntStream.range(0, csvRecords.size()).parallel().forEach(
-                i -> {
-                    CSVRecord record = csvRecords.get(i);
+        csvRecords.parallelStream().forEach(
+        record -> {
                     Double lat = Double.parseDouble(record.get("Lat"));
                     Double lon = Double.parseDouble(record.get("Long"));
                     List<List<Coordinate>> isochrone = buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
@@ -92,25 +87,32 @@ public class IsochroneGenerator {
                     printMemoryUsage();
                     if(isochrone != null){
                         List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
-                        Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
-                        int interval = timeLimit / numberOfBuckets;
-                        try {
-                            printer.printRecord( interval , wktWriter.write(previousPolygon), record.get("Lat"), record.get("Long"));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        for (int j = 1; j < polygonShells.size() - 1; j++) {
-                            Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                        if(polygonShells != null) {
+                            Polygon previousPolygon = geometryFactory.createPolygon(polygonShells.get(0));
+                            previousPolygon.setSRID(4326);
+                            int interval = timeLimit / numberOfBuckets;
                             try {
-                                printer.printRecord( ((j+1) * interval) , wktWriter.write(polygon.difference(previousPolygon)), record.get("Lat"), record.get("Long"));
+                                printer.printRecord( interval , WKBWriter.toHex(wkbWriter.write(previousPolygon)), record.get("Lat"), record.get("Long"));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            previousPolygon = polygon;
+                            for (int j = 1; j < polygonShells.size() - 1; j++) {
+                                Polygon polygon = geometryFactory.createPolygon(polygonShells.get(j));
+                                polygon.setSRID(4326);
+                                try {
+                                    Geometry difference = polygon.difference(previousPolygon);
+                                    difference.setSRID(4326);
+                                    printer.printRecord( ((j+1) * interval) , WKBWriter.toHex(wkbWriter.write(difference)), record.get("Lat"), record.get("Long"));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                previousPolygon = polygon;
+
+                            }
 
                         }
+                        isochrone.clear();
                     }
-                    isochrone.clear();
                     System.out.println("Isochrone cleared: " + dtf.format(LocalDateTime.now()));
                     printMemoryUsage();
                 }
@@ -122,7 +124,7 @@ public class IsochroneGenerator {
         System.out.println("End: " + dtf.format(end));
     }
 
-    private static ArrayList<Coordinate[]> buildIsochronePolygons(Double lat, Double lon, List<List<Coordinate>> isochrone) {
+    public static ArrayList<Coordinate[]> buildIsochronePolygons(Double lat, Double lon, List<List<Coordinate>> isochrone) {
         Collection<ConstraintVertex> sites = new ArrayList<>();
         for (int j = 0; j < isochrone.size(); j++) {
             List<Coordinate> level = isochrone.get(j);
@@ -135,31 +137,35 @@ public class IsochroneGenerator {
 
         ConformingDelaunayTriangulator conformingDelaunayTriangulator = new ConformingDelaunayTriangulator(sites, 0.0);
         conformingDelaunayTriangulator.setConstraints(new ArrayList<>(), new ArrayList<>());
-        conformingDelaunayTriangulator.formInitialDelaunay();
-        conformingDelaunayTriangulator.enforceConstraints();
+        try {
+            conformingDelaunayTriangulator.formInitialDelaunay();
+            conformingDelaunayTriangulator.enforceConstraints();
 
-        Geometry convexHull = conformingDelaunayTriangulator.getConvexHull();
-        if (!(convexHull instanceof Polygon)) {
-            throw new IllegalArgumentException("Too few points found. "
-                    + "Please try a different 'point' or a larger 'time_limit'.");
-        }
-        QuadEdgeSubdivision tin = conformingDelaunayTriangulator.getSubdivision();
-        for (Vertex vertex : (Collection<Vertex>) tin.getVertices(true)) {
-            if (tin.isFrameVertex(vertex)) {
-                vertex.setZ(Double.MAX_VALUE);
+            Geometry convexHull = conformingDelaunayTriangulator.getConvexHull();
+            if (!(convexHull instanceof Polygon)) {
+                return null;
             }
+            QuadEdgeSubdivision tin = conformingDelaunayTriangulator.getSubdivision();
+            for (Vertex vertex : (Collection<Vertex>) tin.getVertices(true)) {
+                if (tin.isFrameVertex(vertex)) {
+                    vertex.setZ(Double.MAX_VALUE);
+                }
+            }
+            ArrayList<Coordinate[]> polygonShells = new ArrayList<>();
+            ContourBuilder contourBuilder = new ContourBuilder(tin);
+            for (int j = 0; j < isochrone.size() - 1; j++) {
+                MultiPolygon multiPolygon = contourBuilder.computeIsoline((double) j + 0.5);
+                Polygon maxPolygon = heuristicallyFindMainConnectedComponent(multiPolygon, geometryFactory.createPoint(new Coordinate(lon, lat)));
+                polygonShells.add(maxPolygon.getExteriorRing().getCoordinates());
+            }
+            return  polygonShells;
+        } catch (LocateFailureException e) {
+            return null;
         }
-        ArrayList<Coordinate[]> polygonShells = new ArrayList<>();
-        ContourBuilder contourBuilder = new ContourBuilder(tin);
-        for (int j = 0; j < isochrone.size() - 1; j++) {
-            MultiPolygon multiPolygon = contourBuilder.computeIsoline((double) j + 0.5);
-            Polygon maxPolygon = heuristicallyFindMainConnectedComponent(multiPolygon, geometryFactory.createPoint(new Coordinate(lon, lat)));
-            polygonShells.add(maxPolygon.getExteriorRing().getCoordinates());
-        }
-        return  polygonShells;
+
     }
 
-    private static List<List<Coordinate>> buildIsochrone(int timeLimit, int numberOfBuckets, GraphHopper hopper, FlagEncoder encoder, Double lat, Double lon) {
+    public static List<List<Coordinate>> buildIsochrone(int timeLimit, int numberOfBuckets, GraphHopper hopper, FlagEncoder encoder, Double lat, Double lon) {
         QueryResult qr = hopper.getLocationIndex().findClosest(lat, lon, DefaultEdgeFilter.allEdges(encoder));
         Graph graph = hopper.getGraphHopperStorage();
         QueryGraph queryGraph = new QueryGraph(graph);
@@ -172,8 +178,6 @@ public class IsochroneGenerator {
         } catch (IllegalStateException exception) {
             return null;
         }
-
-
     }
 
 
