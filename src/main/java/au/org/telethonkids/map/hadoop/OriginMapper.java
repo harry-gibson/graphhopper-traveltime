@@ -1,5 +1,6 @@
-package uk.ac.ox.map.hadoop;
+package au.org.telethonkids.map.hadoop;
 
+import au.org.telethonkids.map.IsochroneGenerator;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
@@ -10,7 +11,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.WKBWriter;
-import uk.ac.ox.map.IsochroneGenerator;
 
 import java.io.IOException;
 import java.util.List;

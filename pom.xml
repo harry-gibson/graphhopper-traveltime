@@ -71,6 +71,11 @@
       <version>0.13.0</version>
     </dependency>
     <dependency>
+      <groupId>com.graphhopper</groupId>
+      <artifactId>graphhopper-reader-gtfs</artifactId>
+      <version>0.13.0</version>
+    </dependency>
+    <dependency>
         <groupId>com.graphhopper</groupId>
         <artifactId>graphhopper-isochrone</artifactId>
         <version>0.13.0</version>

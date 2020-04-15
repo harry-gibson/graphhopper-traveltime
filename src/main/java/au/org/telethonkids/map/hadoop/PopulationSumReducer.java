@@ -1,4 +1,4 @@
-package uk.ac.ox.map.hadoop;
+package au.org.telethonkids.map.hadoop;
 
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;

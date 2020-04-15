@@ -1,4 +1,4 @@
-package uk.ac.ox.map;
+package au.org.telethonkids.map;
 
 import com.google.common.collect.Lists;
 import com.graphhopper.GraphHopper;
@@ -39,29 +39,27 @@ public class IsochroneGenerator {
     private final static WKTWriter wktWriter = new WKTWriter();
     private final static WKBWriter wkbWriter = new WKBWriter();
 
-    private static final long MEGABYTE = 1024L * 1024L;
 
-    public static long bytesToMegabytes(long bytes) {
-        return bytes / MEGABYTE;
-    }
+
+
 
 
     public static void main( String[] args ) throws IOException {
 
         LocalDateTime start = LocalDateTime.now();
         System.out.println("Start: " + dtf.format(start));
-        printMemoryUsage();
+        App.printMemoryUsage();
         int timeLimit = 8100;
         int numberOfBuckets = 9;
         // Network
         String osmFile = args[0];
         String graphLocation = args[1];
         String mode = args [2];
-        GraphHopper hopper = getGraph(osmFile, graphLocation, mode);
+        GraphHopper hopper = App.getGraph(osmFile, graphLocation, mode);
         EncodingManager encodingManager = hopper.getEncodingManager();
         FlagEncoder encoder = encodingManager.getEncoder(mode);
         System.out.println("Network loaded: " + dtf.format(LocalDateTime.now()));
-        printMemoryUsage();
+        App.printMemoryUsage();
         // Origins
         Reader in = new FileReader(args[3]);
         Iterable<CSVRecord> records = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(in);
@@ -84,7 +82,7 @@ public class IsochroneGenerator {
                     Double lon = Double.parseDouble(record.get("Long"));
                     List<List<Coordinate>> isochrone = buildIsochrone(timeLimit, numberOfBuckets, hopper, encoder, lat, lon);
                     System.out.println("Isochrone loaded: " + dtf.format(LocalDateTime.now()));
-                    printMemoryUsage();
+                    App.printMemoryUsage();
                     if(isochrone != null){
                         List<Coordinate[]> polygonShells = buildIsochronePolygons(lat, lon, isochrone);
                         if(polygonShells != null) {
@@ -114,10 +112,10 @@ public class IsochroneGenerator {
                         isochrone.clear();
                     }
                     System.out.println("Isochrone cleared: " + dtf.format(LocalDateTime.now()));
-                    printMemoryUsage();
+                    App.printMemoryUsage();
                 }
         );
-        printMemoryUsage();
+        App.printMemoryUsage();
         printer.close();
 
         LocalDateTime end = LocalDateTime.now();
@@ -180,16 +178,6 @@ public class IsochroneGenerator {
         }
     }
 
-
-    private static GraphHopper getGraph(String osmFile, String graphLocation, String mode) {
-        return new GraphHopperOSM().setOSMFile(osmFile).
-                setStoreOnFlush(true).
-                setCHEnabled(true).
-                setGraphHopperLocation(graphLocation).
-                setEncodingManager(EncodingManager.create(mode)).
-                importOrLoad();
-    }
-
     private static Polygon heuristicallyFindMainConnectedComponent(MultiPolygon multiPolygon, Point point) {
         int maxPoints = 0;
         Polygon maxPolygon = null;
@@ -204,17 +192,5 @@ public class IsochroneGenerator {
             }
         }
         return maxPolygon;
-    }
-
-    private static void printMemoryUsage() {
-        // Get the Java runtime
-        Runtime runtime = Runtime.getRuntime();
-        // Run the garbage collector
-        runtime.gc();
-        // Calculate the used memory
-        long memory = runtime.totalMemory() - runtime.freeMemory();
-        System.out.println("Used memory is bytes: " + memory);
-        System.out.println("Used memory is megabytes: "
-                + bytesToMegabytes(memory));
     }
 }

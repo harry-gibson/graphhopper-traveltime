@@ -1,4 +1,4 @@
-package uk.ac.ox.map;
+package au.org.telethonkids.map;
 
 import static org.junit.Assert.assertTrue;
 
