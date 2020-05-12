@@ -1,17 +1,13 @@
 package au.org.telethonkids.map;
 
 
-import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.Request;
-import com.graphhopper.routing.Path;
 import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.FootFlagEncoder;
 import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.storage.GraphHopperStorage;
@@ -19,8 +15,6 @@ import com.graphhopper.storage.index.LocationIndex;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Instant;
@@ -38,6 +32,7 @@ public class TravelTimeByPTODGenerator {
     public static long bytesToMegabytes(long bytes) {
         return bytes / MEGABYTE;
     }
+    private final static double MAX_DISTANCE_KM = 150;
 
     public static void main( String[] args ) throws IOException {
 
@@ -54,6 +49,7 @@ public class TravelTimeByPTODGenerator {
         // storage and locationindex at the end we need to have a reference to them here so don't use a static
         // method in App to create the hopper
         final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
+
         EncodingManager encodingManager = EncodingManager.create(Arrays.asList(ptFlagEncoder, new FootFlagEncoder()), 8);
         GHDirectory directory = GraphHopperGtfs.createGHDirectory(graphLocation);
         GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
@@ -96,12 +92,17 @@ public class TravelTimeByPTODGenerator {
                             String end = destination.get("uid");
                             Double endLon = Double.parseDouble(destination.get("lon"));
                             Double endLat = Double.parseDouble(destination.get("lat"));
+                            Double dist_km = HaversineDistance.HaversineDistance(startLat, startLon, endLat, endLon);
+                            if(dist_km > MAX_DISTANCE_KM){
+                                continue;
+                            }
                             Request req = new Request(startLat, startLon, endLat, endLon);
                             //https://github.com/graphhopper/graphhopper/issues/1396
                             req.setEarliestDepartureTime(depTime);
-                            req.setMaxWalkDistancePerLeg(10000);
+                            req.setMaxWalkDistancePerLeg(1500);
                             req.setProfileQuery(false);
                             req.setIgnoreTransfers(true);
+                            req.setBlockedRouteTypes(2); // train?
 
                             try {
                                 GHResponse rsp = hopper.route(req);
