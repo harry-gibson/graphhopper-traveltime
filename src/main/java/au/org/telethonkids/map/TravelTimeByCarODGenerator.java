@@ -34,7 +34,7 @@ public class TravelTimeByCarODGenerator {
         String destinationsFile = args [3];
         String mode = "car";
 
-        GraphHopper hopper = App.getGraph(osmFile, graphLocation, mode);
+        GraphHopper hopper = App.getOSMGraph(osmFile, graphLocation, mode);
         EncodingManager encodingManager = hopper.getEncodingManager();
         FlagEncoder encoder = encodingManager.getEncoder(mode);
         App.printMemoryUsage();
@@ -45,17 +45,17 @@ public class TravelTimeByCarODGenerator {
 
         FileWriter out = new FileWriter(args[4]);
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
-        printer.printRecord("sa1_origin", "sa2_destination","car");
+        printer.printRecord("sa1_origin", "dzn_destination","car");
         origins.parallelStream().forEach(
                 origin -> {
-                    String start = origin.get("sa1_main16");
-                    Double startLon = Double.parseDouble(origin.get("mean_lon"));
-                    Double startLat = Double.parseDouble(origin.get("mean_lat"));
+                    String start = origin.get("uid");
+                    Double startLon = Double.parseDouble(origin.get("lon"));
+                    Double startLat = Double.parseDouble(origin.get("lat"));
                     for (CSVRecord destination: destinations
                          ) {
-                        String end = destination.get("sa2_main16");
-                        Double endLon = Double.parseDouble(destination.get("mean_lon"));
-                        Double endLat = Double.parseDouble(destination.get("mean_lat"));
+                        String end = destination.get("uid");
+                        Double endLon = Double.parseDouble(destination.get("lon"));
+                        Double endLat = Double.parseDouble(destination.get("lat"));
                         GHRequest req = new GHRequest(startLat, startLon, endLat, endLon);
                         GHResponse rsp = hopper.route(req);
                         if(!rsp.hasErrors()){

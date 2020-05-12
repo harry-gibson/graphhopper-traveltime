@@ -75,16 +75,19 @@ public class TravelTimeByPTODGenerator {
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
         FileWriter outErrors = new FileWriter(outErrorsFile);
         CSVPrinter errorPrinter = new CSVPrinter(outErrors, CSVFormat.DEFAULT);
-        printer.printRecord("sa1_origin", "dzn_destination","transit");
+        printer.printRecord("sa1_origin", "dzn_destination","transit","debug");
         errorPrinter.printRecord("sa1_origin", "origin_lat", "origin_lon",
                 "dzn_destination", "dest_lat", "dest_lon");
-        // pick a random thursday in april that isn't near anzac day or easter
-        Instant depTime = LocalDateTime.of(2016,4,14,6,30,0)
+
+        // GTFS queries need a time, to match to timetables.
+        // pick a random thursday that isn't near bank holidays
+        Instant depTime = LocalDateTime.of(2016,10,13,6,30,0)
                 .atZone(ZoneId.of("Australia/Perth"))
                 .toInstant();
         try {
             origins.parallelStream().limit(100).forEach(
                     origin -> {
+            //for (CSVRecord origin : origins){
                         String start = origin.get("uid");
                         Double startLon = Double.parseDouble(origin.get("lon"));
                         Double startLat = Double.parseDouble(origin.get("lat"));
@@ -94,9 +97,12 @@ public class TravelTimeByPTODGenerator {
                             Double endLon = Double.parseDouble(destination.get("lon"));
                             Double endLat = Double.parseDouble(destination.get("lat"));
                             Request req = new Request(startLat, startLon, endLat, endLon);
+                            //https://github.com/graphhopper/graphhopper/issues/1396
                             req.setEarliestDepartureTime(depTime);
-                            //req.setMaxWalkDistancePerLeg(5000);
-                            req.setProfileQuery(true);
+                            req.setMaxWalkDistancePerLeg(10000);
+                            req.setProfileQuery(false);
+                            req.setIgnoreTransfers(true);
+
                             try {
                                 GHResponse rsp = hopper.route(req);
                                 if (!rsp.hasErrors()) {
@@ -111,7 +117,7 @@ public class TravelTimeByPTODGenerator {
                                                 .orElseThrow(NoSuchElementException::new)
                                                 .getTime();
                                         try {
-                                            printer.printRecord(start, end, bestNonWalkingTime);
+                                            printer.printRecord(start, end, bestNonWalkingTime, rsp.getDebugInfo());
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }
@@ -120,7 +126,6 @@ public class TravelTimeByPTODGenerator {
                             } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
                                 try {
                                     errorPrinter.printRecord(start, startLat, startLon, end, endLat, endLon);
-                                    continue;
                                 } catch (IOException ioException) {
                                     ioException.printStackTrace();
                                 }

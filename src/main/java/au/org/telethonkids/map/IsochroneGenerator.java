@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.isochrone.algorithm.ContourBuilder;
 import com.graphhopper.isochrone.algorithm.Isochrone;
-import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.QueryGraph;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
@@ -55,7 +54,7 @@ public class IsochroneGenerator {
         String osmFile = args[0];
         String graphLocation = args[1];
         String mode = args [2];
-        GraphHopper hopper = App.getGraph(osmFile, graphLocation, mode);
+        GraphHopper hopper = App.getOSMGraph(osmFile, graphLocation, mode);
         EncodingManager encodingManager = hopper.getEncodingManager();
         FlagEncoder encoder = encodingManager.getEncoder(mode);
         System.out.println("Network loaded: " + dtf.format(LocalDateTime.now()));
