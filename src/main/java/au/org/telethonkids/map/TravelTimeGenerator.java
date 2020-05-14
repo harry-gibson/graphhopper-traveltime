@@ -19,10 +19,12 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -62,42 +64,69 @@ public class TravelTimeGenerator {
         CSVPrinter errorPrinter = new CSVPrinter(outErrors, CSVFormat.DEFAULT);
         outPrinter.printRecord(config.getOriginsData().getIdCol() + "_origin",
                 config.getDestinationsData().getIdCol() + "_destination"
-                ,"total_time","walk_distance","straight_line_dist", "transit_legs","debug");
+                ,"total_time","walk_distance_m","straight_line_dist_km", "transit_legs","debug");
         errorPrinter.printRecord("origin_id", "origin_lat", "origin_lon",
-                "dest_id", "dest_lat", "dest_lon");
+                "dest_id", "dest_lat", "dest_lon", "error_type");
 
         // configure optional parts of the search
-        final double max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
+        final double max_corvid_endurance;
+        if (config.getMaxCrowFliesDistanceKM() == null){
+            max_corvid_endurance = Integer.MAX_VALUE;
+            System.out.println("*** Maximum distance between points is unrestricted ***");
+        }
+        else{
+            max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
+            System.out.println("*** Maximum distance between points is restricted to "
+                    + max_corvid_endurance + "km ***");
+        }
         GTFSSearchOptions gtfsSearchOptions = config.getTransitOptions();
+        if(gtfsSearchOptions == null){
+            throw new InvalidObjectException("Config file did not contain a TransitOptions section");
+        }
         // GTFS queries need a time, to match to timetables. If the string has been formatted right this
         // should cope with timezones
-        final Instant depTime = OffsetDateTime.parse(gtfsSearchOptions.getEarliestDepartureTime()).toInstant();
-        final double maxWalkDistPerLeg = gtfsSearchOptions.getMaxWalkDistancePerLeg();
+        final Instant depTime;
+        try {
+            depTime = OffsetDateTime.parse(gtfsSearchOptions.getEarliestDepartureTime()).toInstant();
+        }
+        catch (NullPointerException | DateTimeParseException e){
+            throw new InvalidObjectException(
+                    "TransitOptions section did not contain a valid entry for EarliestDepartureTime");
+        }
+        final Double maxWalkDistPerLeg = gtfsSearchOptions.getMaxWalkDistancePerLeg(); // may be null
+        if (maxWalkDistPerLeg == null){
+            System.out.println("*** Maximum walk distance per leg not restricted ***" );
+        }
+        else{
+            System.out.println("*** Maximum walk distance per leg of " + maxWalkDistPerLeg.toString() + "m ***");
+        }
         final Integer blockedRouteType;
         switch (gtfsSearchOptions.getExcludeType()){
             case "train":
                 blockedRouteType = 2;
+                System.out.println("*** Excluding train routes ***");
                 break;
             case "bus":
                 blockedRouteType = 3;
+                System.out.println("*** Excluding bus routes ***");
                 break;
             case "ferry":
                 blockedRouteType = 4;
+                System.out.println("*** Excluding ferry routes ***");
                 break;
             case "tram":
                 blockedRouteType = 0;
+                System.out.println("*** Excluding tram routes ***");
                 break;
-            default: blockedRouteType = null;
+            default:
+                blockedRouteType = null;
+                System.out.println("*** All transit types available ***");
         }
 
         try {
-            fromToPoints.parallelStream().limit(100).forEach(
+            fromToPoints.parallelStream().forEach(
                     fromTo -> {
                         //for (CSVRecord origin : origins){
-                        double crowFlies = fromTo.HaversineDistance();
-                        if (crowFlies > max_corvid_endurance){
-                            return; // TODO: log it?
-                        }
                         LatLonPair origin = fromTo.getFrom();
                         int originID = origin.getId();
                         double originLon = origin.getLon();
@@ -106,11 +135,23 @@ public class TravelTimeGenerator {
                         int destID = dest.getId();
                         double destLon = dest.getLon();
                         double destLat = dest.getLat();
+                        double crowFlies = fromTo.HaversineDistance();
+                        if (crowFlies > max_corvid_endurance){
+                            try {
+                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                        "Points too far apart");
+                            } catch (IOException ioException) {
+                                ioException.printStackTrace();
+                            }
+                            return; // TODO: log it?
+                        }
 
                         Request req = new Request(originLat, originLon, destLat, destLon);
                         //https://github.com/graphhopper/graphhopper/issues/1396
                         req.setEarliestDepartureTime(depTime);
-                        req.setMaxWalkDistancePerLeg(maxWalkDistPerLeg);
+                        if(maxWalkDistPerLeg != null) {
+                            req.setMaxWalkDistancePerLeg(maxWalkDistPerLeg);
+                        }
                         req.setProfileQuery(false);
                         req.setIgnoreTransfers(true);
                         if(blockedRouteType != null){
@@ -138,10 +179,27 @@ public class TravelTimeGenerator {
                                         e.printStackTrace();
                                     }
                                 }
+                                else{
+                                    try {
+                                        errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                                "No transit route found");
+                                    } catch (IOException ioException) {
+                                        ioException.printStackTrace();
+                                    }
+                                }
+                            }
+                            else{
+                                try {
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Routing error: " + rsp.toString());
+                                } catch (IOException ioException) {
+                                    ioException.printStackTrace();
+                                }
                             }
                         } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
                             try {
-                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon);
+                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                        "Point not found");
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }

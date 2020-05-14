@@ -166,7 +166,7 @@ class GTFSSearchOptions{
         ExcludeType = excludeType;
     }
 
-    public double getMaxWalkDistancePerLeg() {
+    public Double getMaxWalkDistancePerLeg() {
         return MaxWalkDistancePerLeg;
     }
 
@@ -176,7 +176,7 @@ class GTFSSearchOptions{
 
     private String EarliestDepartureTime;
     private String ExcludeType;
-    private double MaxWalkDistancePerLeg;
+    private Double MaxWalkDistancePerLeg;
 
 }
 
@@ -239,12 +239,10 @@ class TravelTimeRunConfig{
     private PointSourceConfig OriginsData;
     private PointSourceConfig DestinationsData;
     private GTFSSearchOptions TransitOptions;
-    private double MaxCrowFliesDistanceKM;
+    private Double MaxCrowFliesDistanceKM;
 
     private String OutputFile;
     private String OutputErrorsFile;
-    private String EarliestDepartureTime;
-
 
     public GTFSSearchOptions getTransitOptions() {
         return TransitOptions;
@@ -254,7 +252,7 @@ class TravelTimeRunConfig{
         TransitOptions = transitOptions;
     }
 
-    public double getMaxCrowFliesDistanceKM() {
+    public Double getMaxCrowFliesDistanceKM() {
         return MaxCrowFliesDistanceKM;
     }
 
