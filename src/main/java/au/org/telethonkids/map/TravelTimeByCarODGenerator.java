@@ -40,8 +40,8 @@ public class TravelTimeByCarODGenerator {
         App.printMemoryUsage();
         System.out.println("Network loaded: " + dtf.format(LocalDateTime.now()));
 
-        Set<CSVRecord> origins = App.getLocations(originsFile);
-        Set<CSVRecord> destinations = App.getLocations(destinationsFile);
+        Set<CSVRecord> origins = App.getCSVRecords(originsFile);
+        Set<CSVRecord> destinations = App.getCSVRecords(destinationsFile);
 
         FileWriter out = new FileWriter(args[4]);
         CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);

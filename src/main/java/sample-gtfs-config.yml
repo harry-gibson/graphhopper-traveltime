@@ -1,0 +1,42 @@
+# SAMPLE YML FILE TO FIND ROUTES VIA PUBLIC TRANSPORT
+
+# OSM file is required for the walking legs to link stops and start/end locations
+OSMFile: path\to\file
+# GTFS file should be specified as the path to the .zip file
+GTFSFile: path\to\zip-file
+# The graph will be created in this folder if it does not already exist, else will be loaded
+# from that folder. If it already exists but is incompatible with the provided OSM and GTFS data
+# an error will occur
+GraphFolder: path\to-folder
+
+# LOCATIONS:
+# If the same filename is specified for origin and destination then we will
+# find one route for each row in it (in this case the lat/lon columns must of course
+# be different). If they are different files then we
+# will find one route for each combination of rows (cartesian product)
+OriginsData:
+  filePath: path\to\file
+  latCol: "origin_lat"
+  lonCol: "origin_lon"
+  idCol: "sa1"
+DestinationsData:
+  filePath: path\to\file
+  latCol: "dest_lat"
+  lonCol: "dest_lon"
+  idCol: "dzn"
+OutputFile: path\to\output
+OutputErrorsFile: path\to\errors
+# skip point pairs that are more than a certain distance apart - comment out or enter a large number
+# to attempt all pairs
+MaxCrowFliesDistanceKM: 250
+
+TransitOptions:
+  # Transit search needs a departure time: this must be within the period for which the GTFS file
+  # has data! Specify in the format "YYYY-MM-DDTHH:MM:SS.SSS+OFFSET" e.g. "2016-10-13T06:00:00.000Z"
+  EarliestDepartureTime: "2016-10-13T06:00:00.000Z"
+  # One transport mode may be excluded (only one, due to graphhopper limitations).
+  # Valid options are "train", "bus", "tram", "ferry", or comment this out to exclude nothing
+  ExcludeType: "train"
+  # How far (in m) should we search for a walking link between stops at start/end/changes
+  MaxWalkDistancePerLeg: 1500
+

@@ -86,8 +86,8 @@ public class App
                 + bytesToMegabytes(memory));
     }
 
-    public static Set<CSVRecord> getLocations(String originsFile) throws IOException {
-        Reader in = new FileReader(originsFile);
+    public static Set<CSVRecord> getCSVRecords(String csvFile) throws IOException {
+        Reader in = new FileReader(csvFile);
         Iterable<CSVRecord> records = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(in);
         Set<CSVRecord> recordsSet = Sets.newHashSet();
         for (CSVRecord record : records) {
