@@ -156,6 +156,7 @@ public class TravelTimeGenerator {
                         }
                         req.setProfileQuery(false);
                         req.setIgnoreTransfers(true);
+                        req.setMaxVisitedNodes(25000); // an arbitrary number i made up, default was 1M
                         if(blockedRouteType != null){
                             req.setBlockedRouteTypes(blockedRouteType); // train
                         }
