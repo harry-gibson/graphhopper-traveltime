@@ -155,7 +155,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>uk.ac.ox.map.IsochroneDriver</mainClass>
+              <mainClass>au.org.telethonkids.map.TravelTimeGenerator</mainClass>
             </manifest>
           </archive>
         </configuration>
