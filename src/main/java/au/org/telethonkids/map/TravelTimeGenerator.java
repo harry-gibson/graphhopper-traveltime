@@ -138,8 +138,10 @@ public class TravelTimeGenerator {
                         double crowFlies = fromTo.HaversineDistance();
                         if (crowFlies > max_corvid_endurance){
                             try {
-                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
-                                        "Points too far apart");
+                                synchronized (errorPrinter) {
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Points too far apart");
+                                }
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }
@@ -173,16 +175,20 @@ public class TravelTimeGenerator {
                                     double walkDistance = bestRoute.getDistance();
                                     int busLegs = bestRoute.getNumChanges() + 1;
                                     try {
-                                        outPrinter.printRecord(originID, destID, bestNonWalkingTime, walkDistance, crowFlies,
-                                                busLegs, rsp.getDebugInfo());
+                                        synchronized (outPrinter) {
+                                            outPrinter.printRecord(originID, destID, bestNonWalkingTime, walkDistance, crowFlies,
+                                                    busLegs, rsp.getDebugInfo());
+                                        }
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
                                 }
                                 else{
                                     try {
-                                        errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
-                                                "No transit route found");
+                                        synchronized (errorPrinter) {
+                                            errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                                    "No transit route found");
+                                        }
                                     } catch (IOException ioException) {
                                         ioException.printStackTrace();
                                     }
@@ -190,16 +196,20 @@ public class TravelTimeGenerator {
                             }
                             else{
                                 try {
-                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
-                                            "Routing error: " + rsp.toString());
+                                    synchronized (errorPrinter) {
+                                        errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                                "Routing error: " + rsp.toString());
+                                    }
                                 } catch (IOException ioException) {
                                     ioException.printStackTrace();
                                 }
                             }
                         } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
                             try {
-                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
-                                        "Point not found");
+                                synchronized (errorPrinter) {
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Point not found");
+                                }
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }
@@ -274,8 +284,10 @@ public class TravelTimeGenerator {
                                     long bestTime = bestRoute.getTime();
                                     double bestRouteDistance = bestRoute.getDistance();
                                     try {
-                                        outPrinter.printRecord(originID, destID, bestTime, bestRouteDistance,
-                                                crowFlies, rsp.getDebugInfo());
+                                        synchronized (outPrinter) {
+                                            outPrinter.printRecord(originID, destID, bestTime, bestRouteDistance,
+                                                    crowFlies, rsp.getDebugInfo());
+                                        }
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
@@ -283,7 +295,9 @@ public class TravelTimeGenerator {
                             }
                         } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
                             try {
-                                errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon);
+                                synchronized (errorPrinter) {
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon);
+                                }
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }
