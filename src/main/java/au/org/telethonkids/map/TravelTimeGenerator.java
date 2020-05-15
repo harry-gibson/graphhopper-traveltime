@@ -260,7 +260,7 @@ public class TravelTimeGenerator {
         final double max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
 
         try {
-            fromToPoints.parallelStream().limit(100).forEach(
+            fromToPoints.parallelStream().forEach(
                     fromTo -> {
                         double crowFlies = fromTo.HaversineDistance();
                         if (crowFlies > max_corvid_endurance){
