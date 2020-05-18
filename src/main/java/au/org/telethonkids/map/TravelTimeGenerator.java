@@ -122,7 +122,7 @@ public class TravelTimeGenerator {
                 blockedRouteType = null;
                 System.out.println("*** All transit types available ***");
         }
-
+        System.out.println("Points loaded: beginning transit routing search for " + fromToPoints.size() + " route pairs");
         try {
             fromToPoints.parallelStream().forEach(
                     fromTo -> {
@@ -145,7 +145,7 @@ public class TravelTimeGenerator {
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }
-                            return; // TODO: log it?
+                            return;
                         }
 
                         Request req = new Request(originLat, originLon, destLat, destLon);
@@ -255,18 +255,14 @@ public class TravelTimeGenerator {
                 config.getDestinationsData().getIdCol() + "_destination"
                 ,"total_time","total_dist","straight_line_dist","debug");
         errorPrinter.printRecord("origin_id", "origin_lat", "origin_lon",
-                "dest_id", "dest_lat", "dest_lon");
+                "dest_id", "dest_lat", "dest_lon", "error_type");
 
         // configure optional parts of the search
         final double max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
-
+        System.out.println("Points loaded: beginning car routing search for " + fromToPoints.size() + " route pairs");
         try {
             fromToPoints.parallelStream().forEach(
                     fromTo -> {
-                        double crowFlies = fromTo.HaversineDistance();
-                        if (crowFlies > max_corvid_endurance){
-                            return; // TODO: log it?
-                        }
                         LatLonPair origin = fromTo.getFrom();
                         int originID = origin.getId();
                         double originLon = origin.getLon();
@@ -275,6 +271,18 @@ public class TravelTimeGenerator {
                         int destID = dest.getId();
                         double destLon = dest.getLon();
                         double destLat = dest.getLat();
+                        double crowFlies = fromTo.HaversineDistance();
+                        if (crowFlies > max_corvid_endurance){
+                            try{
+                                synchronized (errorPrinter){
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Points too far apart");
+                                }
+                            } catch (IOException ioException){
+                                ioException.printStackTrace();
+                            }
+                            return;
+                        }
 
                         GHRequest req = new GHRequest(originLat, originLon, destLat, destLon);
                         try {
@@ -293,11 +301,32 @@ public class TravelTimeGenerator {
                                         e.printStackTrace();
                                     }
                                 }
+                                else{
+                                    try{
+                                        synchronized (errorPrinter){
+                                            errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                                    "No matching car route found");
+                                        }
+                                    } catch (IOException ioException){
+                                        ioException.printStackTrace();
+                                    }
+                                }
+                            }
+                            else{
+                                try {
+                                    synchronized (errorPrinter) {
+                                        errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                                "Routing error: " + rsp.toString());
+                                    }
+                                } catch (IOException ioException) {
+                                    ioException.printStackTrace();
+                                }
                             }
                         } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
                             try {
                                 synchronized (errorPrinter) {
-                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon);
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Point not found");
                                 }
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
