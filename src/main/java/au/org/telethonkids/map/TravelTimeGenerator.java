@@ -258,7 +258,17 @@ public class TravelTimeGenerator {
                 "dest_id", "dest_lat", "dest_lon", "error_type");
 
         // configure optional parts of the search
-        final double max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
+        // configure optional parts of the search
+        final double max_corvid_endurance;
+        if (config.getMaxCrowFliesDistanceKM() == null){
+            max_corvid_endurance = Integer.MAX_VALUE;
+            System.out.println("*** Maximum distance between points is unrestricted ***");
+        }
+        else{
+            max_corvid_endurance = config.getMaxCrowFliesDistanceKM();
+            System.out.println("*** Maximum distance between points is restricted to "
+                    + max_corvid_endurance + "km ***");
+        }
         System.out.println("Points loaded: beginning car routing search for " + fromToPoints.size() + " route pairs");
         try {
             fromToPoints.parallelStream().forEach(
