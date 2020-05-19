@@ -289,7 +289,9 @@ public class TravelTimeGenerator {
                                             "Points too far apart");
                                 }
                             } catch (IOException ioException){
-                                ioException.printStackTrace();
+                                System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING ERROR MSG WITH POINTS " +
+                                        originID + " / "+ destID);
+                                System.out.println(ioException.getStackTrace()[0].getLineNumber());
                             }
                             return;
                         }
@@ -307,8 +309,10 @@ public class TravelTimeGenerator {
                                             outPrinter.printRecord(originID, destID, bestTime, bestRouteDistance,
                                                     crowFlies, rsp.getDebugInfo());
                                         }
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
+                                    } catch (IOException ioException) {
+                                        System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING RESULT WITH POINTS "
+                                                + originID + " / "+ destID);
+                                        System.out.println(ioException.getStackTrace()[0].getLineNumber());
                                     }
                                 }
                                 else{
@@ -318,7 +322,9 @@ public class TravelTimeGenerator {
                                                     "No matching car route found");
                                         }
                                     } catch (IOException ioException){
-                                        ioException.printStackTrace();
+                                        System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING ERROR MSG WITH POINTS " +
+                                                originID + " / "+ destID);
+                                        System.out.println(ioException.getStackTrace()[0].getLineNumber());
                                     }
                                 }
                             }
@@ -329,7 +335,9 @@ public class TravelTimeGenerator {
                                                 "Routing error: " + rsp.toString());
                                     }
                                 } catch (IOException ioException) {
-                                    ioException.printStackTrace();
+                                    System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING ERROR MSG WITH POINTS " +
+                                            originID + " / "+ destID);
+                                    System.out.println(ioException.getStackTrace()[0].getLineNumber());
                                 }
                             }
                         } catch (com.graphhopper.util.exceptions.PointNotFoundException e) {
@@ -339,8 +347,15 @@ public class TravelTimeGenerator {
                                             "Point not found");
                                 }
                             } catch (IOException ioException) {
-                                ioException.printStackTrace();
+                                System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING ERROR MSG WITH POINTS " +
+                                        originID + " / "+ destID);
+                                System.out.println(ioException.getStackTrace()[0].getLineNumber());
                             }
+                        }
+                        catch (java.lang.IndexOutOfBoundsException e){
+                            System.out.println("*** WARNING - IndexOutOfBoundsException occurred routing with points " +
+                                    originID + " / " + destID);
+                            e.printStackTrace();
                         }
                     }
             );
