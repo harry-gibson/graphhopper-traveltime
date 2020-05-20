@@ -400,8 +400,6 @@ class Utils {
                 Double destLon = Double.parseDouble(destRecord.get(destLonCol));
                 int destID = Integer.parseInt(destRecord.get(destIDCol));
                 LatLonPair dest = new LatLonPair(destLat, destLon, destID);
-                // by reference all destinations will have the same origin Point object to save some memory
-                // if we have millions
                 fromToPoints.add(new FromTo(origin, dest));
             }
         }
