@@ -1,10 +1,12 @@
 package au.org.telethonkids.map;
 import com.fasterxml.jackson.databind.MapperFeature;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -20,6 +22,14 @@ class LatLonPair{
         return Double.compare(point.lat, lat) == 0 &&
                 Double.compare(point.lon, lon) == 0 &&
                 id == point.id;
+    }
+
+    public boolean positionEquals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LatLonPair point = (LatLonPair) o;
+        return Double.compare(point.lat, lat) == 0 &&
+                Double.compare(point.lon, lon) == 0;
     }
 
     @Override
@@ -132,6 +142,10 @@ class FromTo{
         FromTo fromTo = (FromTo) o;
         return from.equals(fromTo.from) &&
                 to.equals(fromTo.to);
+    }
+
+    public boolean isZeroLength(){
+        return from.positionEquals(to);
     }
 
     @Override
@@ -331,7 +345,7 @@ class TravelTimeRunConfig{
      * @return Set of FromTo points
      * @throws IOException
      */
-    public Set<FromTo> LoadFromToPoints() throws IOException {
+    public List<FromTo> LoadFromToPoints() throws IOException {
         if (this.OriginsData.getFilePath().equals(this.DestinationsData.getFilePath())){
             return Utils.PointsFromSingleFile(
                     OriginsData.getFilePath(), OriginsData.getLatCol(), OriginsData.getLonCol(), OriginsData.getIdCol(),
@@ -367,16 +381,16 @@ class Utils {
      * @return
      * @throws IOException, NumberFormatException
      */
-    public static Set<FromTo> PointsFromODFiles(String originsFile,
-                                                String originLatCol, String originLonCol, String originIDCol,
-                                                String destsFile,
-                                                String destLatCol, String destLonCol, String destIDCol)
+    public static List<FromTo> PointsFromODFiles(String originsFile,
+                                                 String originLatCol, String originLonCol, String originIDCol,
+                                                 String destsFile,
+                                                 String destLatCol, String destLonCol, String destIDCol)
             throws IOException , NumberFormatException
     {
         Set<CSVRecord> originRecords = App.getCSVRecords(originsFile);
         Set<CSVRecord> destRecords = App.getCSVRecords(destsFile);
-        Set<FromTo> fromToPoints = Sets.newHashSet();
-        originRecords.parallelStream().forEach(originRecord -> {
+        List<FromTo> fromToPoints = Lists.newArrayList();//Sets.newHashSet();
+        for (CSVRecord originRecord: originRecords){
             Double originLat = Double.parseDouble(originRecord.get(originLatCol));
             Double originLon = Double.parseDouble(originRecord.get(originLonCol));
             int originID = Integer.parseInt(originRecord.get(originIDCol));
@@ -390,7 +404,7 @@ class Utils {
                 // if we have millions
                 fromToPoints.add(new FromTo(origin, dest));
             }
-        });
+        }
         return fromToPoints;
     }
 
@@ -404,11 +418,11 @@ class Utils {
      * @return
      * @throws IOException, NumberFormatException
      */
-    public static Set<FromTo> PointsFromSingleFile(String csvFile,
+    public static List<FromTo> PointsFromSingleFile(String csvFile,
                                          String originLatCol, String originLonCol, String originIDCol,
                                          String destLatCol, String destLonCol, String destIDCol) throws IOException, NumberFormatException {
         Set<CSVRecord> csvRecords = App.getCSVRecords(csvFile);
-        Set<FromTo> fromToPoints = Sets.newHashSet();
+        List<FromTo> fromToPoints = Lists.newArrayList();
         for (CSVRecord csvRecord: csvRecords){
             Double originLat = Double.parseDouble(csvRecord.get(originLatCol));
             Double originLon = Double.parseDouble(csvRecord.get(originLonCol));

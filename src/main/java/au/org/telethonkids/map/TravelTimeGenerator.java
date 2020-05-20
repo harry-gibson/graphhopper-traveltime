@@ -39,7 +39,7 @@ public class TravelTimeGenerator {
 
         // get the actual points, do this first so the user doesn't spend ages waiting for the
         // graph to build only to find that the CSV needs fixing
-        Set<FromTo> fromToPoints = config.LoadFromToPoints();
+        List<FromTo> fromToPoints = config.LoadFromToPoints();
 
         // Initialise the GraphHopper, generating the graph if not already done
         // no convenience hopper.close() method on GraphHopperGtfs, so in order to properly close the
@@ -149,6 +149,21 @@ public class TravelTimeGenerator {
                             }
                             return;
                         }
+                        if (fromTo.isZeroLength() || crowFlies < 0.02){
+                            // try to prevent IndexOutOfBoundsException that seems to occur when routing with
+                            // near-identical points
+                            try {
+                                synchronized (errorPrinter) {
+                                    errorPrinter.printRecord(originID, originLat, originLon, destID, destLat, destLon,
+                                            "Points identical or within 20m");
+                                }
+                            } catch (IOException ioException) {
+                                System.out.println("*** WARNING - IOEXCEPTION OCCURRED WRITING ERROR MSG WITH POINTS " +
+                                        originID + " / "+ destID);
+                                System.out.println(ioException.getStackTrace()[0].getLineNumber());
+                            }
+                            return;
+                        }
 
                         Request req = new Request(originLat, originLon, destLat, destLon);
                         //https://github.com/graphhopper/graphhopper/issues/1396
@@ -226,6 +241,9 @@ public class TravelTimeGenerator {
                             }
                         }
                         catch (java.lang.IndexOutOfBoundsException e){
+                            // This seems to occur when start and end points are identical or nearly so. Not certain
+                            // how dissimilar they can be without it happening so hard to filter out bad data
+                            // (115.89468, -31.83413) / (115.89467, -31.83451) fails
                             System.out.println("*** WARNING - IndexOutOfBoundsException occurred routing with points " +
                                     originID + " / " + destID);
                             e.printStackTrace();
@@ -249,7 +267,7 @@ public class TravelTimeGenerator {
 
         // get the actual points, do this first so the user doesn't spend ages waiting for the
         // graph to build only to find that the CSV needs fixing
-        Set<FromTo> fromToPoints = config.LoadFromToPoints();
+        List<FromTo> fromToPoints = config.LoadFromToPoints();
 
         // Initialise the GraphHopper, generating the graph if not already done
         // GraphHopperOSM will handle closing storage and locationindex when it itself is closed,
