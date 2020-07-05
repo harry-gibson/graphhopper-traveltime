@@ -22,7 +22,7 @@ public class GraphhopperGTFSBuilder {
         String graphLocation = args[2];
 
         PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
-        EncodingManager encodingManager = EncodingManager.create(Arrays.asList(ptFlagEncoder, new CarFlagEncoder(), new BikeFlagEncoder(), new FootFlagEncoder()), 12);
+        EncodingManager encodingManager = EncodingManager.create(Arrays.asList(ptFlagEncoder, new FootFlagEncoder()), 8);
         GHDirectory directory = GraphHopperGtfs.createGHDirectory(graphLocation);
         GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
         GraphHopperStorage graphHopperStorage = GraphHopperGtfs.createOrLoad(directory, encodingManager, ptFlagEncoder, gtfsStorage, Collections.singleton(gtfsFile), Collections.singleton(osmFile));

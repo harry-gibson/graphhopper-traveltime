@@ -34,15 +34,14 @@ public class TravelTimeByCarODGenerator {
         String destinationsFile = args [3];
         String mode = "car";
 
-        GraphHopper hopper = App.getGraph(osmFile, graphLocation, mode);
+        GraphHopper hopper = App.getOSMGraph(osmFile, graphLocation, mode);
         EncodingManager encodingManager = hopper.getEncodingManager();
         FlagEncoder encoder = encodingManager.getEncoder(mode);
         App.printMemoryUsage();
         System.out.println("Network loaded: " + dtf.format(LocalDateTime.now()));
 
-        Set<CSVRecord> origins = App.getLocations(originsFile);
-        Set<CSVRecord> destinations = App.getLocations(destinationsFile);
-
+        Set<CSVRecord> origins = App.getCSVRecords(originsFile);
+        Set<CSVRecord> destinations = App.getCSVRecords(destinationsFile);
 
         // printer.printRecord("sa1_origin", "sa2_destination","car");
         origins.parallelStream().forEach(
@@ -64,6 +63,7 @@ public class TravelTimeByCarODGenerator {
                             if(!rsp.hasErrors()){
                                 if(!rsp.getAll().isEmpty()) {
                                     long time = rsp.getBest().getTime();
+
                                     printer.printRecord(start, end, time);
                                 }
                             }

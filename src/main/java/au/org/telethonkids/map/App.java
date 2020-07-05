@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
@@ -59,7 +60,9 @@ public class App
 
     }
 
-    public static GraphHopper getGraph(String osmFile, String graphLocation, String mode) {
+
+
+    public static GraphHopper getOSMGraph(String osmFile, String graphLocation, String mode) {
         return new GraphHopperOSM().setOSMFile(osmFile).
                 setStoreOnFlush(true).
                 setCHEnabled(true).
@@ -84,8 +87,8 @@ public class App
                 + bytesToMegabytes(memory));
     }
 
-    public static Set<CSVRecord> getLocations(String originsFile) throws IOException {
-        Reader in = new FileReader(originsFile);
+    public static Set<CSVRecord> getCSVRecords(String csvFile) throws IOException {
+        Reader in = new FileReader(csvFile);
         Iterable<CSVRecord> records = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(in);
         Set<CSVRecord> recordsSet = Sets.newHashSet();
         for (CSVRecord record : records) {
