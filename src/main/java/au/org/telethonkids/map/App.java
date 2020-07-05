@@ -49,6 +49,7 @@ public class App
 
             byte[] bytes = WKBReader.hexToBytes(geom);
 
+
             printer.printRecord(i , wkbReader.read(bytes).toText());
             i++;
         }

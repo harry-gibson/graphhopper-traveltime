@@ -43,37 +43,41 @@ public class TravelTimeByCarODGenerator {
         Set<CSVRecord> origins = App.getLocations(originsFile);
         Set<CSVRecord> destinations = App.getLocations(destinationsFile);
 
-        FileWriter out = new FileWriter(args[4]);
-        CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
-        printer.printRecord("sa1_origin", "sa2_destination","car");
+
+        // printer.printRecord("sa1_origin", "sa2_destination","car");
         origins.parallelStream().forEach(
                 origin -> {
-                    String start = origin.get("sa1_main16");
-                    Double startLon = Double.parseDouble(origin.get("mean_lon"));
-                    Double startLat = Double.parseDouble(origin.get("mean_lat"));
-                    for (CSVRecord destination: destinations
-                         ) {
-                        String end = destination.get("sa2_main16");
-                        Double endLon = Double.parseDouble(destination.get("mean_lon"));
-                        Double endLat = Double.parseDouble(destination.get("mean_lat"));
-                        GHRequest req = new GHRequest(startLat, startLon, endLat, endLon);
-                        GHResponse rsp = hopper.route(req);
-                        if(!rsp.hasErrors()){
-                            if(!rsp.getAll().isEmpty()) {
-                                long time = rsp.getBest().getTime();
-                                try {
+
+                    try {
+                        String start = origin.get("uid");
+                        FileWriter out = new FileWriter(args[4] + start + ".csv");
+                        CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT);
+                        Double startLon = Double.parseDouble(origin.get("lon"));
+                        Double startLat = Double.parseDouble(origin.get("lat"));
+                        for (CSVRecord destination: destinations
+                        ) {
+                            String end = destination.get("uid");
+                            Double endLon = Double.parseDouble(destination.get("lon"));
+                            Double endLat = Double.parseDouble(destination.get("lat"));
+                            GHRequest req = new GHRequest(startLat, startLon, endLat, endLon);
+                            GHResponse rsp = hopper.route(req);
+                            if(!rsp.hasErrors()){
+                                if(!rsp.getAll().isEmpty()) {
+                                    long time = rsp.getBest().getTime();
                                     printer.printRecord(start, end, time);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
                                 }
                             }
                         }
+                        printer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+
                 }
         );
         System.out.println("End: " + dtf.format(LocalDateTime.now()));
         App.printMemoryUsage();
-        printer.close();
+
         hopper.close();
     }
 }
