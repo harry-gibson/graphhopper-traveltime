@@ -1,17 +1,24 @@
 package au.org.telethonkids.map;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+enum SearchType{
+    CAR_SEARCH,
+    TRANSIT_SEARCH,
+    ISOCHRONE_GENERATION
+}
 
 class LatLonPair{
     @Override
@@ -254,12 +261,21 @@ class TravelTimeRunConfig{
     private PointSourceConfig DestinationsData;
     private GTFSSearchOptions TransitOptions;
     private Double MaxCrowFliesDistanceKM;
+ 
+    private String IsochroneTimes;
 
     private String OutputFile;
     private String OutputErrorsFile;
 
     public GTFSSearchOptions getTransitOptions() {
         return TransitOptions;
+    }
+
+    public List<Integer> getIsochroneTimes(){
+        if (this.IsochroneTimes == null){
+            return null;
+        }
+        return Arrays.stream(this.IsochroneTimes.split(" +")).map(Integer::parseInt).collect(Collectors.toList());
     }
 
     public void setTransitOptions(GTFSSearchOptions transitOptions) {
@@ -340,6 +356,18 @@ class TravelTimeRunConfig{
     public TravelTimeRunConfig() {
     }
 
+    public SearchType getSearchType(){
+        if (this.DestinationsData == null){
+            return SearchType.ISOCHRONE_GENERATION;
+        }
+        else if (this.GTFSFile != null){
+            return SearchType.TRANSIT_SEARCH;
+        }
+        else{
+            return SearchType.CAR_SEARCH;
+        }
+    }
+    
     /**
      * Attempts to load the origin and destination points from the configured file(s)
      * @return Set of FromTo points

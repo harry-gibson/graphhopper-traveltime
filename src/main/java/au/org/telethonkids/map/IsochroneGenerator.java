@@ -39,10 +39,6 @@ public class IsochroneGenerator {
     private final static WKBWriter wkbWriter = new WKBWriter();
 
 
-
-
-
-
     public static void main( String[] args ) throws IOException {
 
         LocalDateTime start = LocalDateTime.now();

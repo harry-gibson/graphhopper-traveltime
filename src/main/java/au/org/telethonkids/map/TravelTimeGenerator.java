@@ -35,6 +35,12 @@ public class TravelTimeGenerator {
 
     private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
+     /**
+      * Runs public transport based travel time search for the configured point pairs and at the configured journey 
+      * starting time, writing results for each point pair to CSV
+      * @param config
+      * @throws IOException
+      */
     private static void runGTFSSearch(TravelTimeRunConfig config) throws IOException {
 
         // get the actual points, do this first so the user doesn't spend ages waiting for the
@@ -67,8 +73,16 @@ public class TravelTimeGenerator {
                 ,"total_time","walk_distance_m","straight_line_dist_km", "transit_legs","debug");
         errorPrinter.printRecord("origin_id", "origin_lat", "origin_lon",
                 "dest_id", "dest_lat", "dest_lon", "error_type");
-
-        // configure optional parts of the search
+        
+        GTFSSearchOptions gtfsSearchOptions = config.getTransitOptions();
+        if(gtfsSearchOptions == null){
+            outPrinter.close();
+            errorPrinter.close();
+            throw new InvalidObjectException("Config file did not contain a TransitOptions section");
+        }
+                
+        // Optionally configure a max straight line distance above which we will not attempt to 
+        // find a network route
         final double max_corvid_endurance;
         if (config.getMaxCrowFliesDistanceKM() == null){
             max_corvid_endurance = Integer.MAX_VALUE;
@@ -79,10 +93,8 @@ public class TravelTimeGenerator {
             System.out.println("*** Maximum distance between points is restricted to "
                     + max_corvid_endurance + "km ***");
         }
-        GTFSSearchOptions gtfsSearchOptions = config.getTransitOptions();
-        if(gtfsSearchOptions == null){
-            throw new InvalidObjectException("Config file did not contain a TransitOptions section");
-        }
+
+        
         // GTFS queries need a time, to match to timetables. If the string has been formatted right this
         // should cope with timezones
         final Instant depTime;
@@ -90,9 +102,14 @@ public class TravelTimeGenerator {
             depTime = OffsetDateTime.parse(gtfsSearchOptions.getEarliestDepartureTime()).toInstant();
         }
         catch (NullPointerException | DateTimeParseException e){
+            outPrinter.close();
+            errorPrinter.close();
             throw new InvalidObjectException(
                     "TransitOptions section did not contain a valid entry for EarliestDepartureTime");
         }
+
+        // Configure the maximum distance between start/end locations in CSV and nearest transport stop, 
+        // or between stops at changes
         final Double maxWalkDistPerLeg = gtfsSearchOptions.getMaxWalkDistancePerLeg(); // may be null
         if (maxWalkDistPerLeg == null){
             System.out.println("*** Maximum walk distance per leg not restricted ***" );
@@ -100,6 +117,8 @@ public class TravelTimeGenerator {
         else{
             System.out.println("*** Maximum walk distance per leg of " + maxWalkDistPerLeg.toString() + "m ***");
         }
+
+        // Up to 1 type of public transport may be blocked (TODO - make this more flexible)
         final Integer blockedRouteType;
         switch (gtfsSearchOptions.getExcludeType()){
             case "train":
@@ -122,6 +141,8 @@ public class TravelTimeGenerator {
                 blockedRouteType = null;
                 System.out.println("*** All transit types available ***");
         }
+
+        // Run the search - use parallel processing
         System.out.println("Points loaded: beginning transit routing search for " + fromToPoints.size() + " route pairs");
         try {
             fromToPoints.parallelStream().forEach(
@@ -164,10 +185,11 @@ public class TravelTimeGenerator {
                             }
                             return;
                         }
-
+                        
+                        // Run the actual routing query
                         Request req = new Request(originLat, originLon, destLat, destLon);
-                        //https://github.com/graphhopper/graphhopper/issues/1396
-                        req.setEarliestDepartureTime(depTime);
+                        // Try to avoid excessively slow searches https://github.com/graphhopper/graphhopper/issues/1396
+                        req.setEarliestDepartureTime(depTime);        
                         if(maxWalkDistPerLeg != null) {
                             req.setMaxWalkDistancePerLeg(maxWalkDistPerLeg);
                         }
@@ -180,7 +202,7 @@ public class TravelTimeGenerator {
                         try {
                             GHResponse rsp = hopper.route(req);
                             if (!rsp.hasErrors()) {
-                                // filter to only routes that aren't walk-only
+                                // filter to only routes that aren't walk- only
                                 // avoid calling getAll multiple times as this is presumably a bit expensive
                                 List<PathWrapper> responses = rsp.getAll();
                                 Supplier<Stream<PathWrapper>> streamSupplier = () -> responses.stream().filter(p -> p.getLegs().size() > 1);
@@ -260,9 +282,15 @@ public class TravelTimeGenerator {
             graphHopperStorage.close();
             locationIndex.close();
         }
-
     }
 
+    
+    /**
+      * Runs car based travel time search for the configured point pairs,
+      * writing results for each point pair to CSV
+      * @param config
+      * @throws IOException
+    */
     private static void runCarSearch(TravelTimeRunConfig config) throws IOException{
 
         // get the actual points, do this first so the user doesn't spend ages waiting for the
@@ -271,7 +299,7 @@ public class TravelTimeGenerator {
 
         // Initialise the GraphHopper, generating the graph if not already done
         // GraphHopperOSM will handle closing storage and locationindex when it itself is closed,
-        // unlike GraphHopperGtfs
+        // unlike GraphHopperGtfs, so it is a bit less fragile!
         GraphHopper hopper = new GraphHopperOSM().setOSMFile(config.getOSMFile()).
                 setStoreOnFlush(true).
                 setCHEnabled(true).
@@ -290,8 +318,8 @@ public class TravelTimeGenerator {
         errorPrinter.printRecord("origin_id", "origin_lat", "origin_lon",
                 "dest_id", "dest_lat", "dest_lon", "error_type");
 
-        // configure optional parts of the search
-        // configure optional parts of the search
+        // Optionally set a maximum straight-line distance above which we will not attempt a network 
+        // routing search
         final double max_corvid_endurance;
         if (config.getMaxCrowFliesDistanceKM() == null){
             max_corvid_endurance = Integer.MAX_VALUE;
@@ -302,6 +330,8 @@ public class TravelTimeGenerator {
             System.out.println("*** Maximum distance between points is restricted to "
                     + max_corvid_endurance + "km ***");
         }
+         
+        // Run the routing searches for all point pairs, using parallel processing
         System.out.println("Points loaded: beginning car routing search for " + fromToPoints.size() + " route pairs");
         try {
             fromToPoints.parallelStream().forEach(
@@ -402,6 +432,13 @@ public class TravelTimeGenerator {
         }
     }
 
+    /**
+     * Main entry point for the graphhopper routing. 
+     * The first argument must be a path to a configuration yaml file, in which all other options 
+     * are configured.
+     * @param args
+     * @throws IOException
+     */
     public static void main( String[] args ) throws IOException {
 
         String yamlFile = args[0];
@@ -410,15 +447,20 @@ public class TravelTimeGenerator {
         System.out.println("Start: " + dtf.format(LocalDateTime.now()));
         App.printMemoryUsage();
 
-        if(config.getGTFSFile() != null) {
+        if(config.getSearchType() == SearchType.TRANSIT_SEARCH) {
             System.out.println("Beginning public transport search");
             runGTFSSearch(config);
         }
-        else{
-            System.out.println("Beginning car routing search");
+        else if (config.getSearchType() == SearchType.CAR_SEARCH){
+            System.out.println("Beginning car routine search");
             runCarSearch(config);
         }
-
+        else{
+            System.out.println("Beginning isochrone generation")
+            // TODO tie in the isochrone search code here too
+            
+        }
+        
         System.out.println("End: " + dtf.format(LocalDateTime.now()));
         App.printMemoryUsage();
     }
